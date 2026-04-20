@@ -29,7 +29,12 @@ WARMUP="${WARMUP:-20}"
 # Resolve repo root so this works from any CWD (including running inside scripts/).
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-python "${ROOT_DIR}/scripts/baseline3_sft_qwen3_8b_4bit_qlora.py" \
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+if ! command -v "${PYTHON_BIN}" >/dev/null 2>&1; then
+  PYTHON_BIN="python"
+fi
+
+"${PYTHON_BIN}" "${ROOT_DIR}/scripts/baseline3_sft_qwen3_8b_4bit_qlora.py" \
   --output_dir "${OUTPUT_DIR}" \
   --num_train_epochs "${EPOCHS}" \
   --max_seq_length "${MAX_SEQ_LEN}" \
