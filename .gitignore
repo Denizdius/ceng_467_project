@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environments
+.venv/
+venv/
+ENV/
+
+# OS / editors
+.DS_Store
+.vscode/
+
+# Training outputs / checkpoints / logs
+outputs/
+*.log
+*.csv
+*.jsonl
+
+# Hugging Face / Transformers caches & auth
+.cache/
+hf_cache/
+**/cache/
+**/.cache/
+**/huggingface/
+**/hf_home/
+
+# Model weights / adapters / shards
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.gguf
+adapter_model.*
+
+# Tokenizers / templates produced during runs
+tokenizer.json
+tokenizer_config.json
+special_tokens_map.json
+added_tokens.json
+merges.txt
+vocab.json
+chat_template.jinja
+
+# Unsloth caches / compiled artifacts
+unsloth_compiled_cache/
+scripts/unsloth_compiled_cache/
+
