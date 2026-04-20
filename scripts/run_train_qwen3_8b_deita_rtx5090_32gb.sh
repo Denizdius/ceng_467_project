@@ -26,7 +26,10 @@ GAS="${GAS:-2}"
 LR="${LR:-2e-4}"
 WARMUP="${WARMUP:-20}"
 
-python scripts/baseline3_sft_qwen3_8b_4bit_qlora.py \
+# Resolve repo root so this works from any CWD (including running inside scripts/).
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+python "${ROOT_DIR}/scripts/baseline3_sft_qwen3_8b_4bit_qlora.py" \
   --output_dir "${OUTPUT_DIR}" \
   --num_train_epochs "${EPOCHS}" \
   --max_seq_length "${MAX_SEQ_LEN}" \
