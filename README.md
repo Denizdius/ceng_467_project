@@ -94,28 +94,6 @@ Key observations so far:
 
 The full experimental report is written in LaTeX at `report/progress_report.tex`.
 
-## Building the Report
 
-From the repository root, compile the report with:
 
-```bash
-cd report
-pdflatex progress_report.tex
-bibtex progress_report
-pdflatex progress_report.tex
-pdflatex progress_report.tex
-```
 
-The generated PDF will be `report/progress_report.pdf`.
-
-## Planned Work
-
-- Complete the HuggingFace-backend evaluation matrix for all checkpoints.
-- Repeat evaluations at least three times per model/task/backend configuration.
-- Report mean and standard deviation for each benchmark metric.
-- Add evaluation energy and runtime measurements next to accuracy results.
-- Finalize dependency documentation for full reproducibility.
-
-## Citation
-
-This project builds on LoRA, QLoRA, DEITA, vLLM, Unsloth, MMLU, and ARC Challenge. Full references are listed in `report/references.bib`.
