@@ -15,11 +15,17 @@ ENV/
 .DS_Store
 .vscode/
 
-# Training outputs / checkpoints / logs
+# Training / evaluation outputs
 outputs/
+scripts/outputs/
 *.log
 *.csv
 *.jsonl
+
+# Report build artefacts and archives
+report/
+reports/
+report.zip
 
 # Hugging Face / Transformers caches & auth
 .cache/

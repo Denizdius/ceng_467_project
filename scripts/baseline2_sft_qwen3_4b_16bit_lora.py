@@ -63,6 +63,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--warmup_steps", type=int, default=10)
     p.add_argument("--seed", type=int, default=3407)
     p.add_argument("--max_seq_length", type=int, default=None, help="Force this context length (default: try 2048 then 1024 on OOM).")
+    p.add_argument("--save_steps", type=int, default=100, help="Save a trainer checkpoint every N steps.")
+    p.add_argument("--save_total_limit", type=int, default=3, help="Keep only the last N checkpoints.")
+    p.add_argument("--resume_from_checkpoint", type=str, default=None, help="Path to a checkpoint directory to resume from.")
     p.add_argument("--per_device_train_batch_size", type=int, default=None, help="Override batch size (default: auto-tune up to use VRAM).")
     p.add_argument("--gradient_accumulation_steps", type=int, default=None, help="Override grad accumulation (default: auto-tune).")
     p.add_argument("--lora_rank", type=int, default=16)
@@ -194,6 +197,9 @@ def run_pipeline(args: argparse.Namespace, max_seq_length: int) -> None:
         seed=args.seed,
         output_dir=str(out / "trainer_state"),
         logging_steps=1,
+        save_strategy="steps",
+        save_steps=args.save_steps,
+        save_total_limit=args.save_total_limit,
         report_to="none",
         # TRL >= 0.24: sequence length and text field live on SFTConfig (not SFTTrainer).
         dataset_text_field="text",
@@ -214,7 +220,7 @@ def run_pipeline(args: argparse.Namespace, max_seq_length: int) -> None:
         args=SFTConfig(**train_kwargs),
     )
 
-    trainer.train()
+    trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
 
     os.makedirs(lora_dir, exist_ok=True)
     model.save_pretrained(str(lora_dir))
