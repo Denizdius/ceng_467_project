@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# MMLU (generative) — HF (transformers) backend — Qwen3-8B QLoRA SFT model (with PEFT adapter).
+# MMLU (default, loglikelihood) — HF (transformers) backend — Qwen3-8B QLoRA SFT model (with PEFT adapter).
 # Default: 5-shot.  Logs stdout+stderr, collects GPU VRAM/power, reports energy.
 #
 # Usage:  bash scripts/run_mmlu_lm_eval_hf_qlora_sft.sh
@@ -53,8 +53,8 @@ EXTRA_ARGS=()
 
 lm_eval \
   --model hf \
-  --model_args "pretrained=${BASE_MODEL},peft=${LORA_DIR},dtype=float16,trust_remote_code=True" \
-  --tasks mmlu_generative \
+  --model_args "pretrained=${BASE_MODEL},peft=${LORA_DIR},dtype=float16" \
+  --tasks mmlu \
   --num_fewshot "${NUM_FEWSHOT}" \
   --batch_size "${BATCH_SIZE}" \
   "${EXTRA_ARGS[@]}"

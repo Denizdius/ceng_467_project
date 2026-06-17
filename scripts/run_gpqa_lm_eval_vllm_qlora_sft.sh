@@ -1,20 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# MMLU (default, loglikelihood) — HF (transformers) backend — Qwen3-8B Instruct model.
-# Default: 5-shot.  Logs stdout+stderr, collects GPU VRAM/power, reports energy.
+# GPQA Diamond (zeroshot) — vLLM backend — Qwen3-8B QLoRA SFT model (with LoRA adapter).
+# Default: 0-shot.  Logs stdout+stderr, collects GPU VRAM/power, reports energy.
 #
-# Usage:  bash scripts/run_mmlu_lm_eval_hf_instruct.sh
+# Usage:  bash scripts/run_gpqa_lm_eval_vllm_qlora_sft.sh
 #
 # Env overrides:
-#   INSTRUCT_MODEL=unsloth/Qwen3-8B-unsloth-bnb-4bit
-#   NUM_FEWSHOT=5  BATCH_SIZE=1
-#   SYSTEM_INSTRUCTION="You are a helpful assistant. /no_think."
-#   LOG_DIR=...  GPU_INDEX=0  METRICS_INTERVAL=2
+#   BASE_MODEL=unsloth/Qwen3-8B-Base-unsloth-bnb-4bit
+#   LORA_DIR=outputs/baseline3_deita_seq1024/lora_adapters
+#   NUM_FEWSHOT=0  BATCH_SIZE=auto  MAX_MODEL_LEN=8192  GPU_MEMORY_UTILIZATION=0.85
+#   MAX_LORA_RANK=64  SYSTEM_INSTRUCTION="..."  LOG_DIR=...  GPU_INDEX=0  METRICS_INTERVAL=2
+#
+# NOTE: Do NOT pass lora_name/lora_id — some vLLM versions reject these EngineArgs.
 
-INSTRUCT_MODEL="${INSTRUCT_MODEL:-unsloth/Qwen3-8B-unsloth-bnb-4bit}"
-NUM_FEWSHOT="${NUM_FEWSHOT:-5}"
-BATCH_SIZE="${BATCH_SIZE:-1}"
+BASE_MODEL="${BASE_MODEL:-unsloth/Qwen3-8B-Base-unsloth-bnb-4bit}"
+NUM_FEWSHOT="${NUM_FEWSHOT:-0}"
+BATCH_SIZE="${BATCH_SIZE:-auto}"
+MAX_MODEL_LEN="${MAX_MODEL_LEN:-8192}"
+GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.85}"
+MAX_LORA_RANK="${MAX_LORA_RANK:-64}"
 SYSTEM_INSTRUCTION="${SYSTEM_INSTRUCTION:-}"
 GPU_INDEX="${GPU_INDEX:-0}"
 METRICS_INTERVAL="${METRICS_INTERVAL:-2}"
@@ -23,7 +28,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 if ! command -v "${PYTHON_BIN}" >/dev/null 2>&1; then PYTHON_BIN="python"; fi
 
-RUN_TAG="mmlu_hf_instruct"
+LORA_DIR="${LORA_DIR:-${ROOT_DIR}/outputs/baseline3_deita_seq1024/lora_adapters}"
+LORA_DIR="$(realpath "${LORA_DIR}")"
+
+RUN_TAG="gpqa_diamond_zeroshot_vllm_qlora_sft"
 LOG_DIR="${LOG_DIR:-${ROOT_DIR}/outputs/eval_logs/${RUN_TAG}}"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 LOG_FILE="${LOG_DIR}/${TIMESTAMP}.log"
@@ -31,7 +39,7 @@ GPU_CSV="${LOG_DIR}/gpu_metrics_${TIMESTAMP}.csv"
 mkdir -p "${LOG_DIR}"
 exec > >(tee "${LOG_FILE}") 2>&1
 echo "=== ${RUN_TAG} | $(date -u +'%Y-%m-%dT%H:%M:%SZ') ==="
-echo "Log: ${LOG_FILE}"
+echo "Log: ${LOG_FILE}"; echo "LoRA: ${LORA_DIR}"
 
 LOGGER_PID=""
 _cleanup() { [[ -n "${LOGGER_PID}" ]] && kill "${LOGGER_PID}" 2>/dev/null || true; }
@@ -49,9 +57,9 @@ EXTRA_ARGS=()
 [[ -n "${SYSTEM_INSTRUCTION}" ]] && EXTRA_ARGS+=(--system_instruction "${SYSTEM_INSTRUCTION}")
 
 lm_eval \
-  --model hf \
-  --model_args "pretrained=${INSTRUCT_MODEL},dtype=float16" \
-  --tasks mmlu \
+  --model vllm \
+  --model_args "pretrained=${BASE_MODEL},dtype=auto,max_model_len=${MAX_MODEL_LEN},tensor_parallel_size=1,gpu_memory_utilization=${GPU_MEMORY_UTILIZATION},enforce_eager=True,enable_lora=True,max_lora_rank=${MAX_LORA_RANK},lora_local_path=${LORA_DIR}" \
+  --tasks gpqa_diamond_zeroshot \
   --num_fewshot "${NUM_FEWSHOT}" \
   --batch_size "${BATCH_SIZE}" \
   "${EXTRA_ARGS[@]}"

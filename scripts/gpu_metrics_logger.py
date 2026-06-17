@@ -57,25 +57,56 @@ def main() -> None:
     write_header = not Path(args.output).exists()
     print(f"[gpu_metrics_logger] device {args.gpu_index}: {name} -> {args.output} every {args.interval_seconds}s")
 
+    consecutive_errors = 0
+    MAX_CONSECUTIVE_ERRORS = 10
+
     try:
         while True:
-            mem = pynvml.nvmlDeviceGetMemoryInfo(handle)
-            mem_mb = mem.used // (1024 * 1024)
-            util = pynvml.nvmlDeviceGetUtilizationRates(handle)
-            # Power in milliwatts (per NVML API).
-            power_mw = pynvml.nvmlDeviceGetPowerUsage(handle)
             ts = datetime.now(timezone.utc).isoformat()
 
-            row = {
+            # --- memory (rarely fails) ---
+            try:
+                mem = pynvml.nvmlDeviceGetMemoryInfo(handle)
+                mem_mb = mem.used // (1024 * 1024)
+            except pynvml.NVMLError:
+                mem_mb = None
+
+            # --- utilisation (can throw NVMLError_Unknown under load) ---
+            try:
+                util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+                gpu_util = util.gpu
+            except pynvml.NVMLError:
+                gpu_util = None
+
+            # --- power (milliwatts per NVML API) ---
+            try:
+                power_mw = pynvml.nvmlDeviceGetPowerUsage(handle)
+            except pynvml.NVMLError:
+                power_mw = None
+
+            # Count samples where every metric failed; bail out if persistent.
+            if mem_mb is None and gpu_util is None and power_mw is None:
+                consecutive_errors += 1
+                if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                    print(
+                        f"[gpu_metrics_logger] {MAX_CONSECUTIVE_ERRORS} consecutive "
+                        "all-metric failures — giving up.",
+                        file=sys.stderr,
+                    )
+                    break
+            else:
+                consecutive_errors = 0
+
+            row: dict = {
                 "timestamp_utc": ts,
                 "gpu_index": args.gpu_index,
                 "gpu_name": name,
                 "memory_used_mb": mem_mb,
-                "gpu_util_percent": util.gpu,
+                "gpu_util_percent": gpu_util,
                 "power_mw": power_mw,
             }
             if args.include_power_watts:
-                row["power_w"] = round(power_mw / 1000.0, 3)
+                row["power_w"] = round(power_mw / 1000.0, 3) if power_mw is not None else None
 
             with open(args.output, "a", newline="", encoding="utf-8") as f:
                 w = csv.DictWriter(f, fieldnames=fieldnames)

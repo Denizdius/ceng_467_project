@@ -27,6 +27,15 @@ report/
 reports/
 report.zip
 
+# Archives / bundled exports
+*.zip
+
+# Root figure assets
+fig1.eps
+
+# Paper project (LaTeX source, PDFs, figures, presentation)
+project_paper/
+
 # Hugging Face / Transformers caches & auth
 .cache/
 hf_cache/
